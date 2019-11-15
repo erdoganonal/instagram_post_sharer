@@ -1,0 +1,13 @@
+colorama==0.4.1
+decorator==4.0.11
+imageio==2.1.2
+InstagramAPI==1.0.2
+moviepy==0.2.3.2
+numpy==1.17.4
+opencv-contrib-python==3.4.2.17
+opencv-python==3.4.2.17
+Pillow==6.2.1
+python-sqlite-orm==0.0.1
+requests==2.11.1
+requests-toolbelt==0.7.0
+tqdm==4.11.2
