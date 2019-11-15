@@ -1,0 +1,158 @@
+"Prints the log file. Allows some filters."
+import argparse
+import time
+
+import colorama
+from colorama import Fore
+
+from settings import FILENAME
+
+colorama.init()
+
+LEVEL_COLOR_DICT = {
+    "DEBUG": Fore.BLUE,
+    "INFO":  Fore.GREEN,
+    "WARNING": Fore.YELLOW,
+    "ERROR": Fore.RED,
+    "CRITICAL": Fore.RED
+}
+
+LEVELS = {
+    "CRITICAL": 50,
+    "FATAL": 50,
+    "ERROR": 40,
+    "WARNING": 30,
+    "INFO": 20,
+    "DEBUG": 10,
+}
+
+ALL = "All"
+PROCESS_NAMES = (
+    "MainProcess",
+    "SlaveInstagram",
+    "MasterInstagram",
+    ALL
+)
+
+
+def main():
+    "Starts from here"
+    logfile = open(FILENAME, 'r')
+    logs = tailf(logfile)
+    for log in logs:
+        display_log(log)
+
+
+def display_log(log):
+    "Prints the log to the screen"
+    try:
+        level, process_name, filename, \
+            function_name, line, _, *message = log.split(':')
+    except ValueError:
+        print(f"{Fore.RED}{log}{Fore.RESET}", end='')
+        return
+
+    if is_filtered(level, process_name, filename, function_name, line):
+        return
+
+    message = ':'.join(message)
+    color = LEVEL_COLOR_DICT[level]
+
+    colored_message = f"{color}{level:10}{process_name:17}" \
+        f"{filename:15}{function_name:20}{line:5}{message}{Fore.RESET}"
+    print(colored_message, end='')
+
+
+def _is_filtered(value, from_arg):
+    return not (value in from_arg or from_arg == ALL)
+
+
+def is_filtered(level, process_name, filename, function_name, line):
+    "Checks the log filtered or not"
+    if LEVELS[level] < ARGS.log_level:
+        return True
+
+    if _is_filtered(process_name, ARGS.process_name):
+        return True
+
+    if _is_filtered(filename, ARGS.filename):
+        return True
+
+    if _is_filtered(function_name, ARGS.function_name):
+        return True
+
+    if not line:
+        return True
+
+    return False
+
+
+def tailf(filename):
+    "tails the file"
+    while True:
+        line = filename.readline()
+        if not line or not line.endswith('\n'):
+            time.sleep(0.1)
+            continue
+        yield line
+
+
+def log_level_validator(level):
+    "The validator of log level"
+    level = level.upper()
+    if level not in LEVELS.keys():
+        raise argparse.ArgumentTypeError(
+            "invalid choice: '{0}' (choose from {1})".format(
+                level, ', '.join(LEVELS.keys())
+            )
+        )
+
+    return LEVELS[level]
+
+
+def get_args():
+    "Parses the arguments"
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "-l", "--log-level",
+        nargs=None,
+        required=False,
+        type=log_level_validator,
+        metavar='',
+        default=LEVELS["DEBUG"]
+    )
+
+    parser.add_argument(
+        "-p", "--process-name",
+        nargs=argparse.ONE_OR_MORE,
+        required=False,
+        choices=PROCESS_NAMES,
+        metavar='',
+        default=ALL
+    )
+
+    parser.add_argument(
+        "--filename",
+        nargs=argparse.ONE_OR_MORE,
+        required=False,
+        metavar='',
+        default=ALL
+    )
+
+    parser.add_argument(
+        "--function-name",
+        nargs=argparse.ONE_OR_MORE,
+        required=False,
+        metavar='',
+        default=ALL
+    )
+
+    return parser.parse_args()
+
+
+ARGS = get_args()
+
+
+if __name__ == "__main__":
+    main()
