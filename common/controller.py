@@ -18,15 +18,24 @@ from threading import Thread
 from multiprocessing import Process, Queue
 
 import settings
-from common.tools import set_proxy, raw_print, clean, Q, log_level_checker
+from common.tools import set_proxy, raw_print, \
+    clean, Q, log_level_checker, autocomplate_input, COMPLATER
 from common.logger import logger
 from instagram.master import MasterInstagram
 from instagram.slave import SlaveInstagram
-from instagram_database.db import set_realtime_setting, get_realtime_setting
+from instagram_database.db import Settings, \
+    set_realtime_setting, get_realtime_setting
 
 
 SLAVE_EXCEPTION_HANDLER = Queue()
 MASTER_EXCEPTION_HANDLER = Queue()
+COMPLATER.add_options(
+    "get", "set",
+    "start", "stop", "exit", "terminate"
+)
+COMPLATER.add_options(
+    *[field.lower() for field in Settings.fields() if field != "id"]
+)
 
 
 def module_process_starter(instagram_class, queue, exception_handler):
@@ -56,7 +65,7 @@ def module_process_starter(instagram_class, queue, exception_handler):
 def _handle_set_command(name, value):
     try:
         set_realtime_setting(name.upper(), value)
-    except AttributeError:
+    except (AttributeError, ValueError):
         traceback.print_exc()
 
 
@@ -104,8 +113,12 @@ def _start():
 def _stop(slave, master):
     Q.state = False
 
-    slave.join()
-    master.join()
+    if slave:
+        slave.join()
+    if master:
+        master.join()
+
+    logger.warning("Application stopped.")
 
 
 def _terminate(slave, master):
@@ -151,11 +164,12 @@ def read_console_commands():
     slave, master = None, None
 
     while True:
-        raw_print("Please enter the command: ", end='')
-        command = input().strip().lower()
+        command = autocomplate_input(
+            "Please enter the command: "
+        ).strip().lower()
 
         if command == "start":
-            if (slave and slave.is_alive()) or (master and master.is_alive()):
+            if (slave and slave.is_alive()) and (master and master.is_alive()):
                 raw_print("Processes are already running!")
             else:
                 slave, master = _start()
@@ -215,4 +229,9 @@ def start_app():
         name="log_level_listener",
         daemon=True
     ).start()
-    listen_exceptions()
+
+    try:
+        listen_exceptions()
+    except (KeyboardInterrupt, EOFError):
+        Q.state = False
+        logger.warning("Application terminated")

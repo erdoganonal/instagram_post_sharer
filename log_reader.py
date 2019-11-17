@@ -90,11 +90,14 @@ def is_filtered(level, process_name, filename, function_name, line):
 def tailf(filename):
     "tails the file"
     while True:
-        line = filename.readline()
-        if not line or not line.endswith('\n'):
-            time.sleep(0.1)
-            continue
-        yield line
+        try:
+            line = filename.readline()
+            if not line or not line.endswith('\n'):
+                time.sleep(0.1)
+                continue
+            yield line
+        except KeyboardInterrupt:
+            break
 
 
 def log_level_validator(level):

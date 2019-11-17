@@ -36,6 +36,9 @@ def get_realtime_setting(setting, convert=lambda x: x, default=None):
 
 def set_realtime_setting(name, value):
     "Sets the given setting's value at real-time"
+    # All settings should integer value
+    value = int(value)
+
     if name not in Settings.fields():
         raise AttributeError(
             "{!r} object has no attribute {!r}"
