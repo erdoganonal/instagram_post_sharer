@@ -61,7 +61,12 @@ class MasterInstagram(BaseInstagram):
             return
 
     def _share_single(self, filename):
-        self.uploadPhoto(filename)
+        if filename.endswith(".jpg"):
+            self.uploadPhoto(filename)
+        elif filename.endswith(".mp4"):
+            self.upload_video(filename, settings.DEFAULT_THUMBNAIL)
+        else:
+            logger.error("Unkown media type: %s", filename)
 
     def _share_carousel(self, carousel_media):
         album = []

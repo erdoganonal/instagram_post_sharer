@@ -18,6 +18,7 @@ MASTER_PASSWORD = "XXXX"
 # Paths
 DOWNLOADS = os.path.join(BASE_DIR, "downloads")
 SHARED = os.path.join(BASE_DIR, "shared")
+DEFAULT_THUMBNAIL = os.path.join(BASE_DIR, "default_thumbnail.jpg")
 
 # Times
 WAIT_TIME_S = 60 * 60  # Seconds
