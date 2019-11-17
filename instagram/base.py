@@ -2,7 +2,12 @@
 A instagram user base
 """
 import time
+import json
+import math
+import copy
 
+from requests_toolbelt import MultipartEncoder
+from moviepy.editor import VideoFileClip
 from InstagramAPI import InstagramAPI
 
 from common.logger import logger
@@ -22,7 +27,7 @@ class MediaTypes:
 class BaseInstagram(InstagramAPI):
     "Base for instagram user"
 
-    def __init__(self, username, password, queue, **kwargs):
+    def __init__(self, username, password, queue=None, **kwargs):
         super().__init__(username, password, **kwargs)
         self.queue = queue
         self._is_active = False
@@ -85,6 +90,122 @@ class BaseInstagram(InstagramAPI):
         self._is_active = False
         if self.queue:
             self.queue.state = False
+
+    def delete_all_media(self):
+        "Deletes entire posts of logined user"
+        self.getSelfUserFeed()
+        for post in self.LastJson["items"]:
+            self.deleteMedia(post["id"])
+
+    def upload_video(self, video, thumbnail, **kwargs):
+        "Uploads the given video on instagram"
+        if kwargs.pop("upload_id", None) is None:
+            upload_id = str(int(time.time() * 1000))
+        data = {'upload_id': upload_id,
+                '_csrftoken': self.token,
+                'media_type': '2',
+                '_uuid': self.uuid}
+        if kwargs.pop("is_sidecar", None):
+            data['is_sidecar'] = '1'
+        multipart_encoder = MultipartEncoder(data, boundary=self.uuid)
+        self.s.headers.update({'X-IG-Capabilities': '3Q4=',
+                               'X-IG-Connection-Type': 'WIFI',
+                               'Host': 'i.instagram.com',
+                               'Cookie2': '$Version=1',
+                               'Accept-Language': 'en-US',
+                               'Accept-Encoding': 'gzip, deflate',
+                               'Content-type': multipart_encoder.content_type,
+                               'Connection': 'keep-alive',
+                               'User-Agent': self.USER_AGENT})
+        response = self.s.post(
+            self.API_URL + "upload/video/", data=multipart_encoder.to_string()
+        )
+        if response.status_code == 200:
+            self._upload_video(
+                video, thumbnail, upload_id, json.loads(response.text), **kwargs
+            )
+
+    # pylint: disable=too-many-locals
+    def _upload_video(self, video, thumbnail, upload_id, body, **kwargs):
+        upload_url = body['video_upload_urls'][3]['url']
+        upload_job = body['video_upload_urls'][3]['job']
+
+        video_data = open(video, 'rb').read()
+        request_size = int(math.floor(len(video_data) / 4))
+        last_request_extra = (len(video_data) - (request_size * 3))
+
+        headers = copy.deepcopy(self.s.headers)
+        self.s.headers.update({'X-IG-Capabilities': '3Q4=',
+                               'X-IG-Connection-Type': 'WIFI',
+                               'Cookie2': '$Version=1',
+                               'Accept-Language': 'en-US',
+                               'Accept-Encoding': 'gzip, deflate',
+                               'Content-type': 'application/octet-stream',
+                               'Session-ID': upload_id,
+                               'Connection': 'keep-alive',
+                               'Content-Disposition': 'attachment; filename="video.mov"',
+                               'job': upload_job,
+                               'Host': 'upload.instagram.com',
+                               'User-Agent': self.USER_AGENT})
+        for i in range(0, 4):
+            start = i * request_size
+            if i == 3:
+                end = i * request_size + last_request_extra
+                length = last_request_extra
+            else:
+                end = (i + 1) * request_size
+                length = request_size
+            content_range = "bytes {start}-{end}/{video_length}".format(
+                start=start, end=(end - 1), video_length=len(video_data)
+            ).encode('utf-8')
+
+            self.s.headers.update({
+                'Content-Length': str(end - start), 'Content-Range': content_range,
+            })
+            response = self.s.post(
+                upload_url,
+                data=video_data[start:start + length]
+            )
+        self.s.headers = headers
+
+        if response.status_code == 200:
+            # Wait 60 seconds to to be finised the transcode
+            time.sleep(60)
+            if self.configure_video(upload_id, video, thumbnail, **kwargs):
+                return self.expose()
+        return False
+
+    def configure_video(self, upload_id, video, thumbnail, **kwargs):
+        "Prepares video before expose"
+        clip = VideoFileClip(video)
+        caption = kwargs.pop("caption", '')
+        self.uploadPhoto(photo=thumbnail, caption=caption, upload_id=upload_id)
+        data = json.dumps({
+            'upload_id': upload_id,
+            'source_type': 3,
+            'poster_frame_index': 0,
+            'length': 0.00,
+            'audio_muted': False,
+            'filter_type': 0,
+            'video_result': 'deprecated',
+            'clips': {
+                'length': clip.duration,
+                'source_type': '3',
+                'camera_position': 'back',
+            },
+            'extra': {
+                'source_width': clip.size[0],
+                'source_height': clip.size[1],
+            },
+            'device': self.DEVICE_SETTINTS,
+            '_csrftoken': self.token,
+            '_uuid': self.uuid,
+            '_uid': self.username_id,
+            'caption': caption,
+        })
+        clip.reader.close()
+        clip.audio.reader.close_proc()
+        return self.SendRequest('media/configure/?video=1', self.generateSignature(data))
 
     def _start(self):
         raise NotImplementedError

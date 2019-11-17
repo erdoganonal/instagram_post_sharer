@@ -88,7 +88,7 @@ class SlaveInstagram(BaseInstagram):
 
     def _clear_unfollowed_users(self, followings):
         followings = [user["pk"] for user in followings]
-        for user in self.users:
+        for user in self._db.select(User):
             if user.id not in followings:
                 self._db.delete(user)
 
@@ -148,34 +148,16 @@ class SlaveInstagram(BaseInstagram):
         return self.get_media_urls(
             media, post_count,
             max_timestamp=min_timestamp + wait_time_s,
-            media_type="~2"
         )
 
     @staticmethod
     def _get_url(item):
-        return item["image_versions2"]["candidates"][0]["url"]
+        try:
+            return item["video_versions"][0]["url"], MediaTypes.VIDEO
+        except KeyError:
+            return item["image_versions2"]["candidates"][0]["url"], MediaTypes.PHOTO
 
     def _is_media_filtered(self, item, **filters):
-        filtered_media = filters.pop("media_type", None)
-        logger.debug("Media type is: %s", item['media_type'])
-        if filtered_media is not None:
-            media_type = str(item["media_type"])
-            need_reverse = filtered_media.startswith('~')
-            if need_reverse:
-                filtered_media.lstrip('~')
-
-            filtered_media = filtered_media.split(",")
-
-            is_media_type_filtered = media_type not in filtered_media
-            if need_reverse:
-                is_media_type_filtered = not is_media_type_filtered
-            if is_media_type_filtered:
-                logger.debug(
-                    "The media will be filtered on media type: %s",
-                    media_type
-                )
-                return True
-
         max_timestamp = filters.pop("max_timestamp")
         logger.debug(
             "Media taken at %s, max_timestamp is %s",
@@ -267,8 +249,11 @@ class SlaveInstagram(BaseInstagram):
             with LockDir(path):
                 os.chdir(path)
 
-                for index, url in enumerate(urls):
-                    filename = f"{index}_{key}_{username}.jpg"
+                for index, (url, media_type) in enumerate(urls):
+                    if media_type == MediaTypes.PHOTO:
+                        filename = f"{index}_{key}_{username}.jpg"
+                    else:
+                        filename = f"{index}_{key}_{username}.mp4"
 
                     text_in_image = self.download_image(url, path, filename)
                     if text_in_image is None:
