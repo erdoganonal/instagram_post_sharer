@@ -30,7 +30,7 @@ from instagram_database.db import Settings, \
 SLAVE_EXCEPTION_HANDLER = Queue()
 MASTER_EXCEPTION_HANDLER = Queue()
 COMPLATER.add_options(
-    "get", "set",
+    "get", "set", "clear",
     "start", "stop", "exit", "terminate"
 )
 COMPLATER.add_options(
