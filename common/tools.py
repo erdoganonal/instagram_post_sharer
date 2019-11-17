@@ -6,6 +6,7 @@ import shutil
 import logging
 import urllib
 from multiprocessing import Queue
+from pyreadline import Readline
 
 import settings
 from common import exceptions
@@ -14,6 +15,51 @@ from instagram_database.db import get_realtime_setting
 
 # Redirect whole output to stdout
 sys.stdout = open(os.devnull, 'w')
+
+
+class _Completer:  # Custom completer
+
+    def __init__(self, *options):
+        self.options = []
+        self.matches = None
+        self.add_options(*options)
+
+    def complete(self, text, state):
+        "complater function for auto-complation"
+        if state == 0:  # on first trigger, build possible matches
+            if text:  # cache matches (entries that start with entered text)
+                self.matches = [s for s in self.options
+                                if s and s.startswith(text)]
+            else:  # no text entered, all matches possible
+                self.matches = self.options[:]
+
+        # return match indexed by state
+        try:
+            return self.matches[state] + ' '
+        except IndexError:
+            return None
+
+    def add_options(self, *options):
+        "Add options for auto-complate"
+        for option in options:
+            self.options.append(option)
+        self.options = sorted(self.options)
+
+
+COMPLATER = _Completer()
+
+_READLINE = Readline()
+_READLINE.ctrl_c_timeout = 0
+_READLINE.set_completer(COMPLATER.complete)
+_READLINE.parse_and_bind('tab: complete')
+
+
+def autocomplate_input(message=''):
+    "input-lke function with auto-complate"
+    sys.stdout = sys.__stdout__
+    input_ = _READLINE.readline(message).strip('\n')
+    sys.stdout = open(os.devnull, 'w')
+    return input_
 
 
 class QQ:
