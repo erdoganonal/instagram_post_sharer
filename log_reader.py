@@ -39,6 +39,11 @@ def main():
     "Starts from here"
     logfile = open(FILENAME, 'r')
     logs = tailf(logfile)
+    colored_message = "{0:10}{1:17}{2:15}{3:20}{4:5}{5}\n".format(
+        "Level", "Process Name",
+        "Filename", "Function Name", "Line", "Message"
+    )
+    print(colored_message, end='')
     for log in logs:
         display_log(log)
 
