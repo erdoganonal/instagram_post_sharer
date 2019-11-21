@@ -5,6 +5,7 @@ import time
 import shutil
 import logging
 import urllib
+import re
 from multiprocessing import Queue
 from pyreadline import Readline
 
@@ -96,6 +97,50 @@ def raw_print(*args, sep=' ', end='\n', flush=True):
     sys.__stdout__.write(message)
     if flush:
         sys.__stdout__.flush()
+
+
+def basic_arithmetic_eval(string):
+    "Evaluates the string for basic mathematical operations"
+    non_prior_operations = re.compile(r"([-+])")
+
+    def _handle_operation(result, number, char):
+        number = float(number)
+        if char == '+':
+            result += number
+        elif char == '-':
+            result -= number
+        elif char == '*':
+            result *= number
+        elif char == '/':
+            result /= number
+        elif char is None:
+            result = number
+        return result
+
+    def _is_operation(char):
+        return char in ('+', '-', '*', '/')
+
+    def _compute(string, recurse=0):
+        result = None
+        number = ''
+        pre_operation = None
+        for char in string:
+            if not char:
+                continue
+            if _is_operation(char):
+                if pre_operation is None:
+                    result = float(number)
+                else:
+                    result = _handle_operation(result, number, pre_operation)
+                number = ''
+                pre_operation = char
+            else:
+                if recurse:
+                    char = str(_compute(char, recurse-1))
+                number += char
+        return _handle_operation(result, number, pre_operation)
+
+    return _compute(non_prior_operations.split(string), recurse=1)
 
 
 def clean():
