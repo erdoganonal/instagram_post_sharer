@@ -15,13 +15,51 @@ from common import exceptions
 
 from instagram_database.db import get_realtime_setting
 
+MEDIA_TYPE_PHOTO_EXT = ".jpg"
+MEDIA_TYPE_VIDEO_EXT = ".mp4"
 
-# pylint:disable=too-few-public-methods
+
 class MediaTypes:
     "Types of the media"
     PHOTO = 1
     VIDEO = 2
     CAROUSEL = 8
+
+    @classmethod
+    def get_media_type(cls, name, ignore_error=False):
+        "Returns the type of the media"
+        if name.endswith(MEDIA_TYPE_PHOTO_EXT):
+            return cls.PHOTO
+        if name.endswith(MEDIA_TYPE_VIDEO_EXT):
+            return cls.VIDEO
+
+        if ignore_error:
+            return None
+
+        raise exceptions.UnknownMediaExtension(name)
+
+    @classmethod
+    def get_extension(cls, media_type, ignore_error=False):
+        "Returns the extension of known media type"
+        if media_type == cls.PHOTO:
+            return MEDIA_TYPE_PHOTO_EXT
+        if media_type == cls.VIDEO:
+            return MEDIA_TYPE_VIDEO_EXT
+
+        if ignore_error:
+            return None
+
+        raise exceptions.UnknownMediaType(media_type)
+
+    @classmethod
+    def is_type_of(cls, name, type_):
+        "Checks the type of the name"
+        return type_ == cls.get_media_type(name)
+
+    @classmethod
+    def is_known_extension(cls, name):
+        "Return True if given name has known extension"
+        return name.endswith((MEDIA_TYPE_PHOTO_EXT, MEDIA_TYPE_VIDEO_EXT))
 
 
 class BaseInstagram(InstagramAPI):
@@ -63,8 +101,8 @@ class BaseInstagram(InstagramAPI):
                 logger.warning("Time has been updated!")
                 if total_waited_time >= wait_time_s:
                     break
-                seconds = wait_time_s
                 spin_count = (wait_time_s - total_waited_time) // wait_secs
+                seconds = wait_time_s
                 continue
 
             spin_count -= 1
