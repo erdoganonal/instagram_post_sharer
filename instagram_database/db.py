@@ -8,6 +8,7 @@ from sqlite_orm.table import BaseTable
 
 import settings
 from common.logger import logger
+import common.tools as tools
 
 
 def get_realtime_setting(setting, convert=lambda x: x, default=None):
@@ -37,7 +38,11 @@ def get_realtime_setting(setting, convert=lambda x: x, default=None):
 def set_realtime_setting(name, value):
     "Sets the given setting's value at real-time"
     # All settings should integer value
-    value = int(value)
+    try:
+        value = int(value)
+    except ValueError:
+        # Try to evaluate
+        value = int(tools.basic_arithmetic_eval(value))
 
     if name not in Settings.fields():
         raise AttributeError(

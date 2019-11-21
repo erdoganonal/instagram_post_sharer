@@ -250,14 +250,12 @@ class SlaveInstagram(BaseInstagram):
                 os.chdir(path)
 
                 for index, (url, media_type) in enumerate(urls):
-                    if media_type == MediaTypes.PHOTO:
-                        filename = f"{index}_{key}_{username}.jpg"
-                    else:
-                        filename = f"{index}_{key}_{username}.mp4"
+                    filename = f"{index}_{key}_{username}{MediaTypes.get_extension(media_type)}"
 
                     text_in_image = self.download_image(url, path, filename)
                     if text_in_image is None:
                         # Failed to download image
+                        logger.error("Image download failed.")
                         continue
 
                     downloaded_media_count += 1
@@ -270,7 +268,13 @@ class SlaveInstagram(BaseInstagram):
 
             os.chdir(settings.BASE_DIR)
             if is_shared_before:
-                shutil.rmtree(path)
+                for _ in range(10):
+                    try:
+                        shutil.rmtree(path)
+                    except PermissionError:
+                        time.sleep(0.5)
+                    else:
+                        break
 
         logger.info("%s media has been downloaded.", downloaded_media_count)
 

@@ -39,15 +39,29 @@ class WaitAFewMinutes(BaseAPIException):
 
 
 class AuthorizionError(BaseAPIException):
-    "Raises when server returned with wait message"
+    "Raises when auhorization error comes from server"
 
 
 class UnknownFailMessage(BaseAPIException):
-    "Raises when server returned with wait message"
+    "Raises when error has message but not handled"
 
 
 class UnknownFail(BaseAPIException):
-    "Raises when server returned with wait message"
+    "Raises when error has no message"
 
     def __init__(self, json_value):
         super().__init__(json.dumps(json_value))
+
+
+class UnknownMediaExtension(BaseAPIException):
+    "Raises when given extension is not valid"
+
+    def __init__(self, name):
+        super().__init__(
+            ".{0} is not a valid media type"
+            "".format(name.split('.')[-1])
+        )
+
+
+class UnknownMediaType(BaseAPIException):
+    "Raises when given media type is not valid"
