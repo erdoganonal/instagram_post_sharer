@@ -2,15 +2,12 @@
 A instagram user for posting medias.
 """
 import os
-import time
-import glob
 import shutil
 
 import settings
-from instagram.base import BaseInstagram
+from instagram.base import BaseInstagram, MediaTypes
 from common.tools import LockDir
 from common.logger import logger
-from instagram_database.db import get_realtime_setting
 
 
 class MasterInstagram(BaseInstagram):
@@ -33,18 +30,17 @@ class MasterInstagram(BaseInstagram):
                 downloads = os.path.join(settings.DOWNLOADS, downloads)
                 self.share_from_folder(downloads)
             logger.debug("Downloads folder check is done.")
-            time.sleep(
-                get_realtime_setting("LISTENER_WAIT_TIME", int, 60)
-            )
+
+            self._wait_with_log(60, "LISTENER_WAIT_TIME")
 
     def share_from_folder(self, downloads):
         "Shares file in the given folder"
         os.chdir(downloads)
         logger.info("New folder %s found.", downloads)
         with LockDir(downloads, wait_until_release=True):
-            to_shared = []
-            for file in glob.glob(f"*jpg"):
-                to_shared.append(file)
+            to_shared = [file for file in os.listdir(".")
+                         if MediaTypes.is_known_extension(file)]
+
             self.share(to_shared)
 
         os.chdir(settings.BASE_DIR)
@@ -61,9 +57,11 @@ class MasterInstagram(BaseInstagram):
             return
 
     def _share_single(self, filename):
-        if filename.endswith(".jpg"):
+        media_type = MediaTypes.get_media_type(filename, ignore_error=True)
+
+        if media_type == MediaTypes.PHOTO:
             self.uploadPhoto(filename)
-        elif filename.endswith(".mp4"):
+        elif media_type == MediaTypes.VIDEO:
             self.upload_video(filename, settings.DEFAULT_THUMBNAIL)
         else:
             logger.error("Unkown media type: %s", filename)
@@ -71,9 +69,14 @@ class MasterInstagram(BaseInstagram):
     def _share_carousel(self, carousel_media):
         album = []
         for media in carousel_media:
+            if MediaTypes.is_type_of(media, MediaTypes.PHOTO):
+                type_ = "photo"
+            else:
+                type_ = "video"
+
             album.append({
                 "file": media,
-                "type": "photo"
+                "type": type_
             })
         self.uploadAlbum(album)
 
