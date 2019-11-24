@@ -77,8 +77,10 @@ class BaseInstagram(InstagramAPI):
             self._is_active = self.queue.state
         return self._is_active
 
-    def _wait_with_log(self, seconds, update_on):
+    def _wait_with_log(self, update_on):
         "Waits given seconds with a log."
+        seconds = get_realtime_setting(update_on, int)
+
         # Log every `WAIT_SECS` seconds
         wait_secs = get_realtime_setting("WAIT_SECS", int, 10)
         spin_count = seconds // wait_secs
@@ -106,7 +108,9 @@ class BaseInstagram(InstagramAPI):
                 continue
 
             spin_count -= 1
-        logger.debug("Time is up.")
+
+        if self.is_active:
+            logger.debug("Time is up.")
 
     def start(self):
         "Starts the program"
@@ -159,9 +163,10 @@ class BaseInstagram(InstagramAPI):
             self.API_URL + "upload/video/", data=multipart_encoder.to_string()
         )
         if response.status_code == 200:
-            self._upload_video(
+            return self._upload_video(
                 video, thumbnail, upload_id, json.loads(response.text), **kwargs
             )
+        return False
 
     # pylint: disable=too-many-locals
     def _upload_video(self, video, thumbnail, upload_id, body, **kwargs):

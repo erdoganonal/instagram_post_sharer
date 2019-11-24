@@ -52,7 +52,7 @@ class SlaveInstagram(BaseInstagram):
                 self.download_images(user.name, posts)
             cycle += 1
 
-            self._wait_with_log(wait_time_s, update_on='WAIT_TIME_S')
+            self._wait_with_log("WAIT_TIME_S")
 
     def _update_database(self):
         self.getSelfUsersFollowing()

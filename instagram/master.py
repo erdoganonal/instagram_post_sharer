@@ -31,7 +31,7 @@ class MasterInstagram(BaseInstagram):
                 self.share_from_folder(downloads)
             logger.debug("Downloads folder check is done.")
 
-            self._wait_with_log(60, "LISTENER_WAIT_TIME")
+            self._wait_with_log("LISTENER_WAIT_TIME")
 
     def share_from_folder(self, downloads):
         "Shares file in the given folder"
