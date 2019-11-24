@@ -1,4 +1,5 @@
 "Prints the log file. Allows some filters."
+import os
 import argparse
 import time
 
@@ -37,6 +38,7 @@ PROCESS_NAMES = (
 
 def main():
     "Starts from here"
+    os.system("cls")
     logfile = open(FILENAME, 'r')
     logs = tailf(logfile)
     colored_message = "{0:10}{1:17}{2:15}{3:20}{4:5}{5}\n".format(
@@ -54,6 +56,12 @@ def display_log(log):
         level, process_name, filename, \
             function_name, line, _, *message = log.split(':')
     except ValueError:
+        # ValueError means, incoming message has multiple lines.
+        # This only occurs with message with new lines and 
+        # on exception. Since the API has no message with
+        # new lines, only possible thing is exception.
+        # Since the entire exception levels are error or
+        # critical, the color of message should be red.
         print(f"{Fore.RED}{log}{Fore.RESET}", end='')
         return
 
