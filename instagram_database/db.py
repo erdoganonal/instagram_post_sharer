@@ -8,7 +8,50 @@ from sqlite_orm.table import BaseTable
 
 import settings
 from common.logger import logger
-import common.tools as tools
+
+
+def basic_arithmetic_eval(string):
+    "Evaluates the string for basic mathematical operations"
+    non_prior_operations = re.compile(r"([-+])")
+
+    def _handle_operation(result, number, char):
+        number = float(number)
+        if char == '+':
+            result += number
+        elif char == '-':
+            result -= number
+        elif char == '*':
+            result *= number
+        elif char == '/':
+            result /= number
+        elif char is None:
+            result = number
+        return result
+
+    def _is_operation(char):
+        return char in ('+', '-', '*', '/')
+
+    def _compute(string, recurse=0):
+        result = None
+        number = ''
+        pre_operation = None
+        for char in string:
+            if not char:
+                continue
+            if _is_operation(char):
+                if pre_operation is None:
+                    result = float(number)
+                else:
+                    result = _handle_operation(result, number, pre_operation)
+                number = ''
+                pre_operation = char
+            else:
+                if recurse:
+                    char = str(_compute(char, recurse-1))
+                number += char
+        return _handle_operation(result, number, pre_operation)
+
+    return _compute(non_prior_operations.split(string), recurse=1)
 
 
 def get_realtime_setting(setting, convert=lambda x: x, default=None):
@@ -42,7 +85,7 @@ def set_realtime_setting(name, value):
         value = int(value)
     except ValueError:
         # Try to evaluate
-        value = int(tools.basic_arithmetic_eval(value))
+        value = int(basic_arithmetic_eval(value))
 
     if name not in Settings.fields():
         raise AttributeError(
