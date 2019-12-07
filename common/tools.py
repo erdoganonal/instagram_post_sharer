@@ -2,10 +2,8 @@
 import sys
 import os
 import time
-import shutil
 import logging
 import urllib
-import re
 from multiprocessing import Queue
 from pyreadline import Readline
 
@@ -98,18 +96,6 @@ def raw_print(*args, sep=' ', end='\n', flush=True):
     if flush:
         sys.__stdout__.flush()
 
-
-def clean():
-    "Clears the downloads"
-    # Clear the whole media
-    try:
-        logger.debug("Clearing the media")
-        shutil.rmtree(settings.DOWNLOADS, ignore_errors=True)
-    except FileNotFoundError:
-        pass
-    os.makedirs(settings.DOWNLOADS, exist_ok=True)
-    # Clean the log file
-    open(settings.FILENAME, 'w').close()
 
 
 def set_proxy(obj, proxy=settings.DEFAULT_PROXY):
