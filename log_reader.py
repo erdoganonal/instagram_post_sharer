@@ -36,16 +36,26 @@ PROCESS_NAMES = (
 )
 
 
+MESSAGE_FORMAT = (
+    "{0:10}"  # Level
+    "{1:17}"  # Process Name
+    "{2:25}"  # Filename
+    "{3:25}"  # Function Name
+    "{4:5}"   # Line
+    "{5}"     # Message
+)
+
+
 def main():
     "Starts from here"
     os.system("cls")
     logfile = open(FILENAME, 'r')
     logs = tailf(logfile)
-    colored_message = "{0:10}{1:17}{2:15}{3:20}{4:5}{5}\n".format(
+    colored_message = MESSAGE_FORMAT.format(
         "Level", "Process Name",
         "Filename", "Function Name", "Line", "Message"
     )
-    print(colored_message, end='')
+    print(colored_message)
     for log in logs:
         display_log(log)
 
@@ -57,7 +67,7 @@ def display_log(log):
             function_name, line, _, *message = log.split(':')
     except ValueError:
         # ValueError means, incoming message has multiple lines.
-        # This only occurs with message with new lines and 
+        # This only occurs with message with new lines and
         # on exception. Since the API has no message with
         # new lines, only possible thing is exception.
         # Since the entire exception levels are error or
@@ -71,8 +81,11 @@ def display_log(log):
     message = ':'.join(message)
     color = LEVEL_COLOR_DICT[level]
 
-    colored_message = f"{color}{level:10}{process_name:17}" \
-        f"{filename:15}{function_name:20}{line:5}{message}{Fore.RESET}"
+    colored_message = color + MESSAGE_FORMAT.format(
+        level, process_name, filename,
+        function_name, line, message
+    ) + Fore.RESET
+
     print(colored_message, end='')
 
 
