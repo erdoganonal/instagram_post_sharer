@@ -8,7 +8,8 @@ import urllib
 import traceback
 import shutil
 import json
-from multiprocessing import Process, Queue
+import threading
+from multiprocessing import Process, Queue, active_children
 
 import settings
 from common.tools import set_proxy, raw_print
@@ -57,9 +58,12 @@ class ConsoleCommandExecutor:
     __callables__ = [
         'clean', 'clear',
         'get', 'set',
-        'hardreload', 'help',
-        'start', 'stop', 'reload',
+        'hardreload', 'hardrestart',
+        'help',
+        'start', 'stop',
+        'reload', 'restart',
         'terminate', 'exit',
+        'status',
     ]
 
     def __init__(self, queue):
@@ -67,6 +71,11 @@ class ConsoleCommandExecutor:
         self.master = None
         self.queue = queue
         self.is_active = True
+
+    @property
+    def callables(self):
+        "return the callables"
+        return self.__callables__
 
     def _stop_queue(self):
         SLAVE_EXCEPTION_HANDLER.put(json.dumps(None))
@@ -81,7 +90,7 @@ class ConsoleCommandExecutor:
             return
 
         try:
-            if command not in self.__callables__:
+            if command not in self.callables:
                 raise AttributeError
             getattr(self, command)(*options)
         except AttributeError:
@@ -167,6 +176,21 @@ class ConsoleCommandExecutor:
             self._stop_queue()
 
     @staticmethod
+    def status(*_):
+        "print the status of the program"
+        active_processes = active_children()
+        active_threads = [thread for thread in threading.enumerate()
+                          if thread.name != "MainThread" and thread.is_alive()]
+
+        raw_print("Active Processes:")
+        for active_process in active_processes:
+            raw_print("\t{0}".format(active_process.name))
+
+        raw_print("Active Threads:")
+        for active_thread in active_threads:
+            raw_print("\t{0}".format(active_thread.name))
+
+    @staticmethod
     def get(name):
         "return the value of given name from database. Usage: `get <name>`"
         try:
@@ -242,13 +266,21 @@ class ConsoleCommandExecutor:
         self.stop()
         self.start()
 
+    restart = reload
+
     def hardreload(self, *_):
         "reload the program with termination"
         self.terminate(exit_=False)
         self.start()
 
+    hardrestart = hardreload
+
     def _print_help(self, function_string, printed_helps):
-        function = getattr(self, function_string)
+        try:
+            function = getattr(self, function_string)
+        except AttributeError:
+            raw_print("No help found for {0}".format(function_string))
+            return
         if printed_helps and function in printed_helps:
             # Sometimes different functions does the same
             # operation. No need to print them
@@ -262,7 +294,7 @@ class ConsoleCommandExecutor:
         "show the help"
         if option is None:
             printed_helps = []
-            for function in sorted(self.__callables__):
+            for function in sorted(self.callables):
                 self._print_help(function, printed_helps)
         else:
             self._print_help(option, [])

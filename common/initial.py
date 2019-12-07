@@ -1,3 +1,6 @@
+"""
+Does the some checks for program
+"""
 import sys
 import os
 import imageio
@@ -6,6 +9,10 @@ import settings
 
 
 def check_ffmpeg_exe():
+    "check the video upload executable"
+    if settings.MASTER_WITH_GUI:
+        # In GUI mode, no need execuable
+        return
     try:
         imageio.plugins.ffmpeg.get_exe()
     except imageio.core.fetching.NeedDownloadError:
@@ -19,6 +26,7 @@ def check_ffmpeg_exe():
 
 
 def check_chrome_driver():
+    "check the driver exist or not"
     if settings.MASTER_WITH_GUI and not os.path.isfile(settings.CHROME_DRIVER):
         sys.stderr.write("Failed to locate chromedriver.\n")
         sys.stderr.write("Please locate the driver under base path ")
@@ -27,6 +35,7 @@ def check_chrome_driver():
 
 
 def initial_check():
+    "do initial checks"
     sys.__stdout__.write("Initial check. Please wait...\n")
     sys.__stdout__.flush()
 

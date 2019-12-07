@@ -22,10 +22,6 @@ from common.controller_helper import ConsoleCommandExecutor, \
     SLAVE_EXCEPTION_HANDLER, MASTER_EXCEPTION_HANDLER
 
 COMPLATER.add_options(
-    "get", "set", "clear", "reload",
-    "start", "stop", "exit", "terminate"
-)
-COMPLATER.add_options(
     *[field.lower() for field in Settings.fields() if field != "id"]
 )
 
@@ -34,6 +30,7 @@ def read_console_commands():
     "Waits for console inputs"
 
     console_executor = ConsoleCommandExecutor(Q)
+    COMPLATER.add_options(*console_executor.callables)
 
     while console_executor:
         command = autocomplate_input(
