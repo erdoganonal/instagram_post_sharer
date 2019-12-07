@@ -100,8 +100,11 @@ class MasterInstagram(BaseInstagram):
         options.add_argument('start-maximized')
         options.add_argument('disable-infobars')
         options.add_experimental_option(
-            "mobileEmulation", {"deviceName": "Nexus 5"})
-        # options.add_argument("--disable-extensions")
+            "mobileEmulation", {"deviceName": "Nexus 5"}
+        )
+        options.add_argument("--log-level=OFF")
+        options.add_argument("--disable-extensions")
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
         browser = webdriver.Chrome(
             options=options,
