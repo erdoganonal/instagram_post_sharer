@@ -13,12 +13,12 @@ CHROME_DRIVER = os.path.join(BASE_DIR, "chromedriver.exe")
 DB_NAME = "instagram_post_share.db"
 
 # Slave Instagram settings
-SLAVE_USERNAME = "XXXX"
-SLAVE_PASSWORD = "XXXX"
+SLAVE_USERNAME = None
+SLAVE_PASSWORD = None
 
 # Master Instagram settings
-MASTER_USERNAME = "XXXX"
-MASTER_PASSWORD = "XXXX"
+MASTER_USERNAME = None
+MASTER_PASSWORD = None
 
 # Paths
 DOWNLOADS = os.path.join(BASE_DIR, "downloads")
@@ -38,4 +38,4 @@ FILENAME = "instagram_post_share_app.log"
 FORMAT = "%(levelname)s:%(processName)s:%(filename)s:%(funcName)s:%(lineno)d:: %(message)s"
 
 # Proxy
-DEFAULT_PROXY = "XXXX"
+DEFAULT_PROXY = None
