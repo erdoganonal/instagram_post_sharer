@@ -1,6 +1,7 @@
 "Simple file for doing database operations"
 import os
 import sqlite3
+import re
 
 from sqlite_orm.database import Database
 from sqlite_orm.field import IntegerField, TextField, BaseField
@@ -59,7 +60,7 @@ def get_realtime_setting(setting, convert=lambda x: x, default=None):
     # pylint: disable=bare-except
     try:
         with DB() as database:
-            query = database.db.query(Settings).select().execute()
+            query = database.database.query(Settings).select().execute()
             settings_db = None
             for res in query:
                 settings_db = Settings.to_user_class(res)
@@ -173,7 +174,7 @@ class DB:
             self._create_db_for_first_use()
 
     @property
-    def db(self):
+    def database(self):
         "Returns the database"
         return self._db
 
@@ -182,7 +183,7 @@ class DB:
         # Create the tables
         for table in self.tables:
             try:
-                self.db.query(table).create().execute()
+                self.database.query(table).create().execute()
             except sqlite3.OperationalError:
                 if not skip_error:
                     logger.error(
@@ -214,11 +215,11 @@ class DB:
 
     def insert(self, obj):
         "Inserts the record"
-        self.db.query().insert(obj).execute()
+        self.database.query().insert(obj).execute()
 
     def delete(self, obj):
         "Deletes record from database based on id"
-        self.db.query(obj.__class__).delete().filter(
+        self.database.query(obj.__class__).delete().filter(
             obj.__class__.id == obj.id
         ).execute()
 
@@ -232,7 +233,7 @@ class DB:
         for part in parts:
             kwargs[part] = getattr(obj, part)
 
-        self.db.query(obj.__class__).update(
+        self.database.query(obj.__class__).update(
             **kwargs
         ).filter(obj.__class__.id == obj.id).execute()
 
@@ -240,7 +241,7 @@ class DB:
         return self
 
     def __exit__(self, *args, **kwargs):
-        self.db.close()
+        self.database.close()
 
     def __del__(self):
         # pylint:disable=bare-except
