@@ -241,7 +241,6 @@ class SlaveInstagram(BaseInstagram):
         is_shared_before = False
         for item in media_urls:
             key = list(item)[0]
-            urls = item[key]
 
             path = os.path.join(settings.DOWNLOADS, f"downloaded_images_{key}")
 
@@ -249,7 +248,7 @@ class SlaveInstagram(BaseInstagram):
             with LockDir(path):
                 os.chdir(path)
 
-                for index, (url, media_type) in enumerate(urls):
+                for index, (url, media_type) in enumerate(item[key]):
                     filename = f"{index}_{key}_{username}{MediaTypes.get_extension(media_type)}"
 
                     text_in_image = self.download_image(url, path, filename)

@@ -112,3 +112,6 @@ venv.bak/
 # Folders
 downloads
 shared
+
+# Files
+chromedriver.exe

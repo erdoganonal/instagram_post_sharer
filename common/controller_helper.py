@@ -13,7 +13,8 @@ from multiprocessing import Process, Queue
 import settings
 from common.tools import set_proxy, raw_print
 from common.logger import logger
-from instagram.master import MasterInstagram
+from instagram.master import MasterInstagram as MasterInstagramWithoutGui
+from instagram.master_with_gui import MasterInstagram as MasterInstagramWithGui
 from instagram.slave import SlaveInstagram
 from instagram_database.db import set_realtime_setting, get_realtime_setting
 
@@ -21,11 +22,17 @@ SLAVE_EXCEPTION_HANDLER = Queue()
 MASTER_EXCEPTION_HANDLER = Queue()
 
 
-def module_process_starter(instagram_class, queue, exception_handler):
+if settings.MASTER_WITH_GUI:
+    MasterInstagram = MasterInstagramWithGui
+else:
+    MasterInstagram = MasterInstagramWithoutGui
+
+
+def module_process_starter(instagram_class, username, password, queue, exception_handler):
     "A function for creating the module in Process"
     instagram = instagram_class(
-        username=settings.SLAVE_USERNAME,
-        password=settings.SLAVE_PASSWORD,
+        username=username,
+        password=password,
         queue=queue
     )
 
@@ -77,11 +84,12 @@ class ConsoleCommandExecutor:
             if command not in self.__callables__:
                 raise AttributeError
             getattr(self, command)(*options)
-        except ZeroDivisionError:
+        except AttributeError:
             raw_print("Unknown command.")
         except TypeError:
             raw_print(
-                "Invalid argument. Type `help {0}` for help".format(command))
+                "Invalid argument. Type `help {0}` for help".format(command)
+            )
 
     def __call__(self, text):
         "call the related function from string"
@@ -90,13 +98,21 @@ class ConsoleCommandExecutor:
     def _create_processes(self):
         slave_instagram = Process(
             target=module_process_starter,
-            args=(SlaveInstagram, self.queue, SLAVE_EXCEPTION_HANDLER),
+            args=(
+                SlaveInstagram,
+                settings.SLAVE_USERNAME, settings.SLAVE_PASSWORD,
+                self.queue, SLAVE_EXCEPTION_HANDLER
+            ),
             name="SlaveInstagram",
             daemon=True
         )
         master_instagram = Process(
             target=module_process_starter,
-            args=(MasterInstagram, self.queue, MASTER_EXCEPTION_HANDLER),
+            args=(
+                MasterInstagram,
+                settings.MASTER_USERNAME, settings.MASTER_PASSWORD,
+                self.queue, MASTER_EXCEPTION_HANDLER
+            ),
             name="MasterInstagram",
             daemon=True
         )
@@ -185,7 +201,6 @@ class ConsoleCommandExecutor:
             pass
         os.makedirs(settings.DOWNLOADS, exist_ok=True)
 
-
     @staticmethod
     def _clean_shared():
         try:
@@ -199,7 +214,8 @@ class ConsoleCommandExecutor:
     @staticmethod
     def _clean_db_file():
         # Clean the database. This operation is not suggested.
-        raw_print("Deleting database may cause trouble. Are you sure?[y/N]: ", end="")
+        raw_print(
+            "Deleting database may cause trouble. Are you sure?[y/N]: ", end="")
         if input() == 'y':
             open(settings.DB_NAME, 'w').close()
 

@@ -4,6 +4,11 @@ import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Gui support
+MASTER_WITH_GUI = True
+HEADLESS = True
+CHROME_DRIVER = os.path.join(BASE_DIR, "chromedriver.exe")
+
 # Database settings
 DB_NAME = "instagram_post_share.db"
 
