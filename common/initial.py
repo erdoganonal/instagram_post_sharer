@@ -8,7 +8,16 @@ import imageio
 
 import settings
 from common.colored_print import Colored
+from common.tools import Lock
 
+
+def check_running_instance():
+    "check for running instances."
+    if Lock().is_locked:
+        Colored.print_warning(
+            "Another instance already running."
+        )
+        sys.exit()
 
 def check_ffmpeg_exe():
     "check the video upload executable"
@@ -67,6 +76,7 @@ def initial_check():
     "do initial checks"
     Colored.print_debug("Initial check. Please wait...")
 
+    check_running_instance()
     check_settings()
     check_ffmpeg_exe()
     check_chrome_driver()
