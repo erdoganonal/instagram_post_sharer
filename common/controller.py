@@ -18,6 +18,7 @@ from instagram_database.db import Settings
 from common.tools import raw_print, Q, \
     log_level_checker, autocomplate_input, COMPLATER
 from common.logger import logger
+from common.colored_print import Colored
 from common.controller_helper import ConsoleCommandExecutor, \
     SLAVE_EXCEPTION_HANDLER, MASTER_EXCEPTION_HANDLER
 
@@ -33,9 +34,8 @@ def read_console_commands():
     COMPLATER.add_options(*console_executor.callables)
 
     while console_executor:
-        command = autocomplate_input(
-            "Please enter the command: "
-        ).strip().lower()
+        Colored.print_debug("Please enter the command: ", end='')
+        command = autocomplate_input().strip().lower()
 
         console_executor(command)
 

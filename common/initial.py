@@ -7,6 +7,7 @@ import urllib
 import imageio
 
 import settings
+from common.colored_print import Colored
 
 
 def check_ffmpeg_exe():
@@ -17,11 +18,11 @@ def check_ffmpeg_exe():
     try:
         imageio.plugins.ffmpeg.get_exe()
     except imageio.core.fetching.NeedDownloadError:
-        sys.stderr.write("Failed to import video upload library.\n")
-        sys.stderr.write("Downloading the executable. Please wait...\n")
+        Colored.print_error("Failed to import video upload library.")
+        Colored.print_warning("Downloading the executable. Please wait...")
         imageio.plugins.ffmpeg.download()
-        sys.stderr.write(
-            "\nDownload has been completed. Program should be restarted.\n"
+        Colored.print_warning(
+            "\nDownload has been completed. Program should be restarted."
         )
         sys.exit("Exiting...")
 
@@ -29,45 +30,45 @@ def check_ffmpeg_exe():
 def check_chrome_driver():
     "check the driver exist or not"
     if settings.MASTER_WITH_GUI and not os.path.isfile(settings.CHROME_DRIVER):
-        sys.stderr.write("Failed to locate chromedriver.\n")
-        sys.stderr.write("Please locate the driver under base path ")
-        sys.stderr.write("or define it's path in settings.py\n")
+        Colored.print_error("Failed to locate chromedriver.")
+        Colored.print_error(
+            "Please locate the driver under base path "
+            "or define it's path in settings.py"
+        )
         sys.exit("Exiting...")
 
 
 def check_settings():
+    "Check the settings"
     if settings.SLAVE_USERNAME is None:
-        sys.stderr.write("Username of slave not defined.\n")
+        Colored.print_error("Username of slave not defined.")
         sys.exit()
     if settings.SLAVE_PASSWORD is None:
-        sys.stderr.write("Password of slave not defined.\n")
+        Colored.print_error("Password of slave not defined.")
         sys.exit()
     if settings.MASTER_USERNAME is None:
-        sys.stderr.write("Username of master not defined.\n")
+        Colored.print_error("Username of master not defined.")
         sys.exit()
     if settings.MASTER_PASSWORD is None:
-        sys.stderr.write("Password of master not defined.\n")
+        Colored.print_error("Password of master not defined.")
         sys.exit()
 
     try:
         urllib.request.urlopen("http://www.google.com", timeout=5)
     except urllib.error.URLError:
-        sys.stderr.write("No internet connection. ")
+        Colored.print_error("No internet connection.")
         if settings.DEFAULT_PROXY is None:
-            sys.stderr.write("No proxy is set.\n")
+            Colored.print_warning("No proxy is set.")
             sys.exit()
-        sys.__stdout__.write("Proxy is found. Will be set ")
-        sys.__stdout__.write("after program runs\n")
+        Colored.print_warning("Proxy is found. Will be set after program runs")
 
 
 def initial_check():
     "do initial checks"
-    sys.__stdout__.write("Initial check. Please wait...\n")
-    sys.__stdout__.flush()
+    Colored.print_debug("Initial check. Please wait...")
 
     check_settings()
     check_ffmpeg_exe()
     check_chrome_driver()
 
-    sys.__stdout__.write("Initial check is done. Everything is well\n")
-    sys.__stdout__.flush()
+    Colored.print_info("Initial check is done. Everything is well\n")

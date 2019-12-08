@@ -12,7 +12,8 @@ import threading
 from multiprocessing import Process, Queue, active_children
 
 import settings
-from common.tools import set_proxy, raw_print
+from common.tools import set_proxy
+from common.colored_print import Colored
 from common.logger import logger
 from instagram.master import MasterInstagram as MasterInstagramWithoutGui
 from instagram.master_with_gui import MasterInstagram as MasterInstagramWithGui
@@ -94,9 +95,12 @@ class ConsoleCommandExecutor:
                 raise AttributeError
             getattr(self, command)(*options)
         except AttributeError:
-            raw_print("Unknown command.")
+            Colored.print_warning(
+                "Unknown command. Type `help` to "
+                "see entire commands and it's usages."
+            )
         except TypeError:
-            raw_print(
+            Colored.print_warning(
                 "Invalid argument. Type `help {0}` for help".format(command)
             )
 
@@ -133,7 +137,7 @@ class ConsoleCommandExecutor:
         self.queue.state = True
 
         if self.slave and self.slave.is_alive() and self.master and self.master.is_alive():
-            raw_print("Application is already running!")
+            Colored.print_warning("Application is already running!")
             return
 
         self.slave, self.master = self._create_processes()
@@ -182,13 +186,13 @@ class ConsoleCommandExecutor:
         active_threads = [thread for thread in threading.enumerate()
                           if thread.name != "MainThread" and thread.is_alive()]
 
-        raw_print("Active Processes:")
+        Colored.print_yellow("Active Processes:")
         for active_process in active_processes:
-            raw_print("\t{0}".format(active_process.name))
+            Colored.print_green("\t{0}".format(active_process.name))
 
-        raw_print("Active Threads:")
+        Colored.print_yellow("Active Threads:")
         for active_thread in active_threads:
-            raw_print("\t{0}".format(active_thread.name))
+            Colored.print_green("\t{0}".format(active_thread.name))
 
     @staticmethod
     def get(name):
@@ -196,11 +200,12 @@ class ConsoleCommandExecutor:
         try:
             value = get_realtime_setting(name.upper())
             if value is None:
-                raw_print("No record found for `{0}`".format(name))
+                Colored.print_error("No record found for `{0}`".format(name))
             else:
-                raw_print(value)
+                Colored.print_green(value)
         except AttributeError:
-            traceback.print_exc()
+            exc_info = sys.exc_info()
+            Colored.print_error(traceback.format_exception(*exc_info))
 
     @staticmethod
     def set(name, *options):
@@ -208,8 +213,10 @@ class ConsoleCommandExecutor:
         value = "".join([str(option) for option in options])
         try:
             set_realtime_setting(name.upper(), value)
-        except (AttributeError, ValueError):
-            traceback.print_exc()
+        except AttributeError:
+            Colored.print_error("No record found to update.")
+        except ValueError:
+            Colored.print_error("Could not convert string to float.")
 
     @staticmethod
     def _clean_log_file():
@@ -238,18 +245,27 @@ class ConsoleCommandExecutor:
     @staticmethod
     def _clean_db_file():
         # Clean the database. This operation is not suggested.
-        raw_print(
-            "Deleting database may cause trouble. Are you sure?[y/N]: ", end="")
+        Colored.print_warning(
+            "Deleting database may cause trouble. Are you sure?[y/N]: ",
+            end=''
+        )
         if input() == 'y':
             open(settings.DB_NAME, 'w').close()
 
     def clear(self, *options):
-        "clears the log file. Usage: `clear <log/downloads/shared/all>`"
+        "clears the given output file/folder(s). Usage: `clear <log/downloads/shared/all>`"
+        clear_options = ("log", "downloads", "shared", "all")
 
         if not options:
             raise TypeError
 
         for option in options:
+            if option not in clear_options:
+                Colored.print_error(
+                    "\t{0} is not an option for this command".format(option)
+                )
+                continue
+
             if option in ("log", "all"):
                 self._clean_log_file()
             if option in ("downloads", "all"):
@@ -279,7 +295,8 @@ class ConsoleCommandExecutor:
         try:
             function = getattr(self, function_string)
         except AttributeError:
-            raw_print("No help found for {0}".format(function_string))
+            Colored.print_warning(
+                "No help found for {0}".format(function_string))
             return
         if printed_helps and function in printed_helps:
             # Sometimes different functions does the same
@@ -288,7 +305,7 @@ class ConsoleCommandExecutor:
         printed_helps.append(function)
         docstring = function.__doc__
         name = function.__name__
-        raw_print("\t{0:15}: {1}".format(name, docstring))
+        Colored.print_green("\t{0:15}: {1}".format(name, docstring))
 
     def help(self, option=None):
         "show the help"
