@@ -2,6 +2,7 @@
 import sys
 import os
 import time
+import tempfile
 import logging
 import urllib
 from multiprocessing import Queue
@@ -95,7 +96,6 @@ def raw_print(*args, sep=' ', end='\n', flush=True):
     sys.__stdout__.write(message)
     if flush:
         sys.__stdout__.flush()
-
 
 
 def set_proxy(obj, proxy=settings.DEFAULT_PROXY):
@@ -204,3 +204,11 @@ class LockDir():
 
     def __exit__(self, exception_type, exception_value, traceback):
         self.release()
+
+
+class Lock(LockDir):
+    "acquires the lock for current process"
+    _LOCK_FILE = ".post_sharer_lock_file.lock"
+
+    def __init__(self):
+        super().__init__(tempfile.gettempdir())
