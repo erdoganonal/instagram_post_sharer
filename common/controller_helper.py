@@ -217,6 +217,8 @@ class ConsoleCommandExecutor:
             Colored.print_error("No record found to update.")
         except ValueError:
             Colored.print_error("Could not convert string to float.")
+        except ZeroDivisionError:
+            Colored.print_error("division by zero")
 
     @staticmethod
     def _clean_log_file():
