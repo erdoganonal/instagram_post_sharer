@@ -16,11 +16,12 @@ from threading import Thread
 
 from instagram_database.db import Settings
 from common.tools import raw_print, Q, \
-    log_level_checker, autocomplate_input, COMPLATER
+    autocomplate_input, COMPLATER
 from common.logger import logger
 from common.colored_print import Colored
 from common.controller_helper import ConsoleCommandExecutor, \
-    SLAVE_EXCEPTION_HANDLER, MASTER_EXCEPTION_HANDLER
+    SLAVE_EXCEPTION_HANDLER, MASTER_EXCEPTION_HANDLER, \
+    start_log_level_checker
 
 COMPLATER.add_options(
     *[field.lower() for field in Settings.fields() if field != "id"]
@@ -72,12 +73,7 @@ def start_app():
         name="console_reader",
         daemon=True
     ).start()
-    Thread(
-        target=log_level_checker,
-        args=(Q,),
-        name="log_level_listener",
-        daemon=True
-    ).start()
+    start_log_level_checker()
 
     try:
         listen_exceptions()

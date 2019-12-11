@@ -12,7 +12,8 @@ import threading
 from multiprocessing import Process, Queue, active_children
 
 import settings
-from common.tools import set_proxy
+from common.tools import set_proxy, Q, \
+    log_level_checker
 from common.colored_print import Colored
 from common.logger import logger
 from instagram.master import MasterInstagram as MasterInstagramWithoutGui
@@ -28,6 +29,18 @@ if settings.MASTER_WITH_GUI:
     MasterInstagram = MasterInstagramWithGui
 else:
     MasterInstagram = MasterInstagramWithoutGui
+
+
+def start_log_level_checker():
+    "gets log level from database and sets on change"
+    Q.state = True
+
+    threading.Thread(
+        target=log_level_checker,
+        args=(Q,),
+        name="log_level_listener",
+        daemon=True
+    ).start()
 
 
 def module_process_starter(instagram_class, username, password, queue, exception_handler):
@@ -96,12 +109,12 @@ class ConsoleCommandExecutor:
             getattr(self, command)(*options)
         except AttributeError:
             Colored.print_warning(
-                "Unknown command. Type `help` to "
+                "Unknown command. Type help to "
                 "see entire commands and it's usages."
             )
         except TypeError:
             Colored.print_warning(
-                "Invalid argument. Type `help {0}` for help".format(command)
+                "Invalid argument. Type help {0} for help".format(command)
             )
 
     def __call__(self, text):
@@ -132,8 +145,8 @@ class ConsoleCommandExecutor:
 
         return slave_instagram, master_instagram
 
-    def start(self, *_):
-        "start the application"
+    def start(self):
+        "starts the application. Usage: start"
         self.queue.state = True
 
         if self.slave and self.slave.is_alive() and self.master and self.master.is_alive():
@@ -147,8 +160,8 @@ class ConsoleCommandExecutor:
         self.master.start()
         logger.debug("Application started")
 
-    def stop(self, *_):
-        "stop the application"
+    def stop(self):
+        "stops the application. Usage: stop"
         self.queue.state = False
 
         if self.slave:
@@ -156,15 +169,16 @@ class ConsoleCommandExecutor:
         if self.master:
             self.master.join()
 
+        start_log_level_checker()
         logger.warning("Application stopped.")
 
-    def exit(self, *options):
-        "stop the application and exit"
-        self.stop(*options)
+    def exit(self):
+        "stop the application and exit. Usage: exit"
+        self.stop()
         self._stop_queue()
 
-    def terminate(self, *_, exit_=True):
-        "stop the application immediately"
+    def terminate(self, exit_=True):
+        "stop the application immediately. Usage: terminate"
         self.queue.state = False
         try:
             self.slave.terminate()
@@ -180,8 +194,8 @@ class ConsoleCommandExecutor:
             self._stop_queue()
 
     @staticmethod
-    def status(*_):
-        "print the status of the program"
+    def status():
+        "print the status of the program. Usage: status"
         active_processes = active_children()
         active_threads = [thread for thread in threading.enumerate()
                           if thread.name != "MainThread" and thread.is_alive()]
@@ -196,11 +210,11 @@ class ConsoleCommandExecutor:
 
     @staticmethod
     def get(name):
-        "return the value of given name from database. Usage: `get <name>`"
+        "return the value of given name from database. Usage: get <name>"
         try:
             value = get_realtime_setting(name.upper())
             if value is None:
-                Colored.print_error("No record found for `{0}`".format(name))
+                Colored.print_error("No record found for {0}".format(name))
             else:
                 Colored.print_green(value)
         except AttributeError:
@@ -209,7 +223,7 @@ class ConsoleCommandExecutor:
 
     @staticmethod
     def set(name, *options):
-        "set the value of given name to database. Usage: `set <name> <value>`"
+        "set the value of given name to database. Usage: set <name> <value>"
         value = "".join([str(option) for option in options])
         try:
             set_realtime_setting(name.upper(), value)
@@ -255,8 +269,9 @@ class ConsoleCommandExecutor:
             open(settings.DB_NAME, 'w').close()
 
     def clear(self, *options):
-        "clears the given output file/folder(s). Usage: `clear <log/downloads/shared/all>`"
-        clear_options = ("log", "downloads", "shared", "all")
+        "clears the given output file/folder(s). " \
+            "Usage: clear <log/downloads/shared/screen/all>"
+        clear_options = ("log", "downloads", "shared", "screen", "all")
 
         if not options:
             raise TypeError
@@ -274,20 +289,22 @@ class ConsoleCommandExecutor:
                 self._clean_downloads()
             if option in ("shared", "all"):
                 self._clean_shared()
+            if option in ("screen", "all"):
+                os.system("cls")
             if option in ("db",):
                 self._clean_db_file()
 
     clean = clear
 
-    def reload(self, *_):
-        "reload the program"
+    def reload(self):
+        "reloads the program. Usage: reload"
         self.stop()
         self.start()
 
     restart = reload
 
     def hardreload(self, *_):
-        "reload the program with termination"
+        "reload the program with termination. Usage: hardreload"
         self.terminate(exit_=False)
         self.start()
 
@@ -306,11 +323,15 @@ class ConsoleCommandExecutor:
             return
         printed_helps.append(function)
         docstring = function.__doc__
+        help_message, usage = docstring.split("Usage: ")
         name = function.__name__
-        Colored.print_green("\t{0:15}: {1}".format(name, docstring))
+        Colored.print_green(
+            "\t{0:15}: {1}\n\t{2}Usage: {3}".format(
+                name, help_message, ' ' * 17, usage
+            ))
 
     def help(self, option=None):
-        "show the help"
+        "show the help. Usage: help"
         if option is None:
             printed_helps = []
             for function in sorted(self.callables):

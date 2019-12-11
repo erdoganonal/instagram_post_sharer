@@ -67,11 +67,13 @@ class QQ:
 
     def __init__(self):
         self._queue = Queue()
+        self._queue.put(True)
 
     @property
     def state(self):
         "Returns the state of the system from give Queue"
         state = self._queue.get()
+        self._queue.put(state)
         self.state = state
         return state
 
@@ -125,7 +127,6 @@ def set_proxy(obj, proxy=settings.DEFAULT_PROXY):
 def log_level_checker(queue):
     "Listens LOG_LEVEL at realtime from database. On change, sets."
     while queue.state:
-
         log_level_old = logger.level
         log_level_new = get_realtime_setting("LOG_LEVEL", int)
 
