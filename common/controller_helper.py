@@ -15,6 +15,7 @@ import settings
 from common.tools import set_proxy, Q, \
     log_level_checker
 from common.colored_print import Colored
+from common.basic_correctness import Correctness
 from common.logger import logger
 from instagram.master import MasterInstagram as MasterInstagramWithoutGui
 from instagram.master_with_gui import MasterInstagram as MasterInstagramWithGui
@@ -108,10 +109,17 @@ class ConsoleCommandExecutor:
                 raise AttributeError
             getattr(self, command)(*options)
         except AttributeError:
-            Colored.print_warning(
-                "Unknown command. Type help to "
-                "see entire commands and it's usages."
-            )
+            Colored.print_warning("Unknown command. ", end='')
+            correctness = Correctness(self.callables)
+            word = correctness.spell_check(command)
+            if word:
+                Colored.print_warning(
+                    "Did you mean {0}".format(word)
+                )
+            else:
+                Colored.print_warning(
+                    "Type help to see entire commands and it's usages."
+                )
         except TypeError:
             Colored.print_warning(
                 "Invalid argument. Type help {0} for help".format(command)
